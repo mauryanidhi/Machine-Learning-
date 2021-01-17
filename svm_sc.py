@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Dec 27 00:29:20 2020
+
+@author: Nidhi
+"""
+
+import numpy as np 
+from sklearn import preprocessing
+import pandas as pd
+from sklearn.model_selection import train_test_split
+filename = 'iris.data.csv'
+dataset = pd.read_csv(filename,header=None)
+dataset.columns =['f1','f2','f3','f4','output']
+le=preprocessing.LabelEncoder()
+dataset['output']=le.fit_transform(dataset['output'])
+X=dataset.iloc[:,1:3].values
+y=dataset.iloc[:,-1].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=123)
+y=np.where(y<=0,-1,1)
+
+class SVM:
+
+    def __init__(self, learning_rate=0.001, lambda_param=0.001, n_iters=1000):
+        self.lr = learning_rate
+        self.lambda_param = lambda_param
+        self.n_iters = n_iters
+        self.w = None
+        self.b = None
+
+
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+        #convert 0 to -1
+        y_ = np.where(y <= 0, -1, 1)
+        
+        self.w = np.zeros(n_features)
+        self.b = 0
+        #gradient descent
+        for _ in range(self.n_iters):
+            for idx, x_i in enumerate(X):
+                condition = y_[idx] * (np.dot(x_i, self.w) -self.b) >= 1
+                if condition:
+                    self.w -= self.lr * (2 * self.lambda_param * self.w)
+                    self.b-=self.lr*0
+                else:
+                    self.w -= self.lr * (2 * self.lambda_param * self.w - np.dot(x_i, y_[idx]))
+                    self.b -= self.lr * y_[idx]
+
+
+    def predict(self, X):
+        approx = np.dot(X, self.w) -self.b
+        return np.sign(approx)
+    
+clf = SVM()
+clf.fit(X_train, y_train) 
+predictions = clf.predict(X_test)   
+from sklearn.metrics import accuracy_score
+print("acc:",accuracy_score(predictions,y_test))
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import datasets
+
+from svm import SVM
+
+X, y =  datasets.make_blobs(n_samples=50, n_features=2, centers=2, cluster_std=1.05, random_state=40)
+y = np.where(y == 0, -1, 1)
+
+clf = SVM()
+clf.fit(X, y)
+predictions = clf.predict(X)
+ 
+print(clf.w, clf.b)
+
+def visualize_svm():
+     def get_hyperplane_value(x, w, b, offset):
+          return (-w[0] * x + b + offset) / w[1]
+
+     fig = plt.figure()
+     ax = fig.add_subplot(1,1,1)
+     plt.scatter(X[:,0], X[:,1], marker='o',c=y)
+
+     x0_1 = np.amin(X[:,0])
+     x0_2 = np.amax(X[:,0])
+
+     x1_1 = get_hyperplane_value(x0_1, clf.w, clf.b, 0)
+     x1_2 = get_hyperplane_value(x0_2, clf.w, clf.b, 0)
+
+     x1_1_m = get_hyperplane_value(x0_1, clf.w, clf.b, -1)
+     x1_2_m = get_hyperplane_value(x0_2, clf.w, clf.b, -1)
+
+     x1_1_p = get_hyperplane_value(x0_1, clf.w, clf.b, 1)
+     x1_2_p = get_hyperplane_value(x0_2, clf.w, clf.b, 1)
+
+     ax.plot([x0_1, x0_2],[x1_1, x1_2], 'y--')
+     ax.plot([x0_1, x0_2],[x1_1_m, x1_2_m], 'k')
+     ax.plot([x0_1, x0_2],[x1_1_p, x1_2_p], 'k')
+
+     x1_min = np.amin(X[:,1])
+     x1_max = np.amax(X[:,1])
+     ax.set_ylim([x1_min-3,x1_max+3])
+     plt.show()
+
+visualize_svm()
